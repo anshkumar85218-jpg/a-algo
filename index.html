@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="An interactive, step-by-step implementation of A* search on a 25 by 25 grid.">
+  <title>A* Pathfinding Visualizer</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="algorithm.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <main>
+    <header class="page-header">
+      <div><p class="eyebrow">ALGORITHMS / INTERACTIVE LAB</p><h1>A* Pathfinding Visualizer</h1><p class="subtitle">Watch a shortest path take shape, one decision at a time.</p></div>
+      <span class="board-tag">25 × 25 · Four directions</span>
+    </header>
+
+    <section class="toolbar" aria-label="Search controls">
+      <div class="button-group">
+        <button id="run" class="primary">Run A*</button>
+        <button id="step">Step</button>
+        <button id="pause" disabled>Pause</button>
+        <button id="reset">Reset Path</button>
+        <button id="clear">Clear Board</button>
+        <button id="maze">Generate Random Maze</button>
+      </div>
+      <label class="speed">Speed <input id="speed" type="range" min="1" max="100" value="65"><output id="speed-value" for="speed">65</output></label>
+    </section>
+
+    <div class="workspace">
+      <section class="board-panel" aria-label="Pathfinding board">
+        <div class="board-tools">
+          <label>Edit tool <select id="tool"><option value="wall">Draw / erase walls</option><option value="start">Place start</option><option value="goal">Place destination</option><option value="inspect">Inspect only</option></select></label>
+          <label>Example <select id="scenario"><option value="empty">Empty board</option><option value="gap">Wall with a gap</option><option value="blocked">Blocked destination</option><option value="close">Close endpoints</option><option value="detour">Long detour</option></select></label>
+          <button id="load">Load example</button>
+        </div>
+        <p class="hint" id="edit-hint">Drag to draw walls. Start on a wall to erase. Choose an endpoint tool to move S or D.</p>
+        <div class="grid-scroll"><div id="grid" role="grid" aria-label="25 by 25 pathfinding grid" aria-rowcount="25" aria-colcount="25"></div></div>
+        <div class="legend" aria-label="Cell legend">
+          <span><i class="swatch start"></i>Start (S)</span><span><i class="swatch goal"></i>Destination (D)</span><span><i class="swatch wall"></i>Obstacle</span><span><i class="swatch closed"></i>Explored</span><span><i class="swatch open"></i>Frontier</span><span><i class="swatch path"></i>Final path</span>
+        </div>
+      </section>
+
+      <aside>
+        <section class="panel" aria-labelledby="stats-heading">
+          <h2 id="stats-heading">Search statistics</h2><p id="status" class="status" role="status" aria-live="polite">Ready</p>
+          <dl class="stats"><div><dt>Explored nodes</dt><dd id="explored">0</dd></div><div><dt>Path length <small>(moves)</small></dt><dd id="length">—</dd></div><div><dt>Execution time</dt><dd><span id="time">0.000</span> <small>ms</small></dd></div></dl>
+          <p class="small">Time measures search and reconstruction work only; animation delays are excluded.</p>
+        </section>
+        <section class="panel" aria-labelledby="cell-heading">
+          <h2 id="cell-heading">Cell inspector</h2><p id="coordinates">Select a cell to inspect it.</p>
+          <dl class="scores"><div><dt>g</dt><dd id="g">—</dd></div><div><dt>h</dt><dd id="h">—</dd></div><div><dt>f</dt><dd id="f">—</dd></div></dl>
+          <p id="cell-state" class="small">Coordinates use (row, column), starting at 0.</p>
+        </section>
+        <section class="panel formula-panel"><h2>The A* decision</h2><p class="formula">f(n) = g(n) + h(n)</p><p class="small">Cost so far + estimated cost remaining. Expand the frontier node with the lowest f.</p></section>
+      </aside>
+    </div>
+
+    <details class="education" open>
+      <summary>How A* Works</summary>
+      <div class="education-content">
+        <div><h3>Three scores, one decision</h3><p><strong>g(n)</strong> is the best known number of moves from the start. <strong>h(n)</strong> estimates the moves remaining. <strong>f(n)</strong> is their sum.</p><ol><li>Add the start to the frontier with g = 0.</li><li>Remove the frontier node with the lowest f.</li><li>If it is the destination, follow parent links to recover the path.</li><li>Explore its walkable neighbors. If a cheaper route is found, update their scores and parent; add them to the frontier.</li><li>Repeat. An empty frontier means no path exists.</li></ol></div>
+        <div><h3>Readable pseudocode</h3><pre>g[start] = 0; frontier.add(start)
+while frontier is not empty:
+    current = frontier.removeLowestF()
+    if current == destination:
+        return reconstructParents(current)
+    mark current explored
+    for each walkable neighbor:
+        tentative = g[current] + 1
+        if tentative &lt; g[neighbor]:
+            parent[neighbor] = current
+            g[neighbor] = tentative
+            h[neighbor] = Manhattan(neighbor, destination)
+            f[neighbor] = g[neighbor] + h[neighbor]
+            frontier.addOrUpdate(neighbor)
+return no path</pre></div>
+        <div><h3>Why Manhattan distance?</h3><p>h = |row − goalRow| + |column − goalColumn|. Each move changes just one coordinate by one. Without walls, this is the exact distance. Walls can only make the route longer, so this heuristic never overestimates.</p><p>With unit costs and four-directional movement, Manhattan distance is consistent. A* can safely finalize an explored node and returns an optimal path when the destination is removed from the frontier.</p><h3>When there is no path</h3><p>Walls may disconnect the destination. A* finishes after exploring the reachable region and exhausting the frontier; it does not keep searching forever.</p></div>
+      </div>
+    </details>
+    <details class="education"><summary>Presentation test checklist</summary><div class="education-content tests-copy"><p>Load an example above, then use Step or Run A*. Expected lengths count moves, not cells.</p><ul><li><strong>Empty board:</strong> 40 moves.</li><li><strong>Wall with a gap:</strong> 40 moves, crossing the gap at (12, 12).</li><li><strong>Blocked destination:</strong> “No path exists”; controls remain usable.</li><li><strong>Close endpoints:</strong> 1 move.</li><li><strong>Long detour:</strong> 60 moves.</li><li><strong>Repeated run:</strong> Reset Path, then run again. Walls remain; results match.</li></ul><p>Also pause, inspect scores, step once, resume, and reset during animation. See <a href="README.md">README.md</a> and <a href="PROJECT_REPORT.md">PROJECT_REPORT.md</a> for the full guide.</p></div></details>
+    <footer>Unit-cost movement · Manhattan heuristic · Real search state at every step</footer>
+  </main>
+</body>
+</html>
